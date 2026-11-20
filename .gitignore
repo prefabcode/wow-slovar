@@ -1,5 +1,5 @@
 # Big downloads for the dictionary pipeline (kaikki.org dumps, AzerothCore SQL)
-data/
+/data/
 
 .DS_Store
 __pycache__/

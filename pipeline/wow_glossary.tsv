@@ -1,0 +1,8 @@
+# English names for WoW words that Wiktionary lacks, where the automatic alignment with English quest text
+# (pipeline/slovar/align.py) finds nothing or gets it wrong. Run build.py to see the list of guesses.
+# Russian dictionary form<TAB>English
+дворф	dwarf
+Лок	Loch Modan
+Модан	Loch Modan
+Красногорье	Redridge Mountains
+Хилсбрад	Hillsbrad

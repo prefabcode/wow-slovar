@@ -32,6 +32,34 @@ The default target is `/Volumes/PerkDrive/games/World of Warcraft/_forever_/Inte
 - In game: `/slovar test` opens a test window, `/slovar status` prints hook diagnostics, and `/slovar debug` draws
   the invisible hover layer in red so you can check it lines up with the text.
 
+## Dictionary pipeline
+
+```sh
+python3 pipeline/fetch.py                                    # source data into data/ (~250 MB, git-ignored)
+python3 -m venv pipeline/.venv && pipeline/.venv/bin/pip install -r pipeline/requirements.txt
+pipeline/.venv/bin/python pipeline/build.py                  # writes addon/Slovar/Data/*.lua + coverage report
+luajit tests/lua/lookup.lua волков стали Штормграде           # look words up with the addon's own Lua code
+```
+
+`build.py` reads Russian quest text from AzerothCore (Alliance quests up to `--max-level 30`) and from the
+installed Wayfarer voice packs, including WoW Forever's new quests. It then picks every dictionary word those
+quests use, plus the 10,000 most frequent Russian words (`--freq-top`), and writes every inflected form of each.
+WoW names that Wiktionary lacks get their forms from pymorphy3. Their English names come from matching Russian and
+English quest text (`pipeline/slovar/align.py`); you can correct them in `pipeline/wow_glossary.tsv`, and fix
+misleading glosses in `pipeline/gloss_overrides.tsv`.
+
+Sources:
+- [kaikki.org](https://kaikki.org/dictionary/Russian/): English Wiktionary's Russian entries (CC BY-SA 4.0). This
+  is where the glosses and inflection tables come from.
+- [pymorphy3](https://github.com/no-plagiarism/pymorphy3) with the OpenCorpora dictionary (CC BY-SA): forms of
+  words that Wiktionary lacks.
+- Lyashevskaya & Sharoff's frequency dictionary from the Russian National Corpus
+  ([dict.ruslang.ru](http://dict.ruslang.ru/freq.php)): which words count as common.
+- [AzerothCore](https://github.com/azerothcore/azerothcore-wotlk) quest tables and Wayfarer's subtitles: used
+  only to choose words and align names. No quest text ends up in the output.
+
+The generated data is derived from Wiktionary, so if this addon is ever shared, it falls under CC BY-SA.
+
 ## How the hover works
 
 Blizzard's quest FontStrings are never modified. The addon post-hooks them (`hooksecurefunc`) and places its own
