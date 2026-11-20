@@ -1,0 +1,7 @@
+# Big downloads for the dictionary pipeline (kaikki.org dumps, AzerothCore SQL)
+data/
+
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
