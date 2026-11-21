@@ -30,6 +30,26 @@ Change target for symlink by adding addon path to:
 - `/slovar missing` lists the words you hovered that weren't in the dictionary; `/slovar clear` empties that log.
 - `/slovar status` shows hook diagnostics, `/slovar test` opens a test window, and `/slovar debug` shows the hover layer.
 
+## Saving words for Anki
+
+1. **Bind the key once:** Options → Keybindings → Slovar → «Сохранить слово для Anki».
+2. **Save words:** hover over a word you want to learn and press the key. The chat confirms («★ волк (волков) —
+   сохранено для Anki»), and the tooltip shows ★ from then on.
+   - Saving another form of the same word (волка) adds its sentence to the same card.
+   - `/slovar saved` lists what you've saved; `/slovar unsave слово` removes a word.
+3. **Write the file:** `/reload` or log out. WoW writes SavedVariables only at those moments.
+4. **Export the deck:**
+   ```sh
+   pipeline/.venv/bin/pip install -r pipeline/requirements.txt   # once: adds genanki
+   pipeline/.venv/bin/python pipeline/anki_export.py              # writes exports/slovar.apkg
+   ```
+5. **Import:** double-click `exports/slovar.apkg`, or use File → Import in Anki.
+
+The deck is «Slovar::WoW Forever». Each card shows the quest sentence on the front, with the word in bold. The back
+has the dictionary form, part of speech, meaning, and the grammar of each form you saved. Every export contains
+all saved words, and the notes have stable IDs, so importing again updates the cards you already have (review
+history kept) and only adds the new ones.
+
 ## Fixing missing words
 
 Words you hover that the dictionary doesn't have are logged, together with their sentence, to

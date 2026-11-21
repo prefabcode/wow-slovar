@@ -5,3 +5,6 @@
 __pycache__/
 *.pyc
 .venv/
+
+# Anki decks written by pipeline/anki_export.py
+/exports/

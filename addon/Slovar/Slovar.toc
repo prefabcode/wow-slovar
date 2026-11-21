@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Slovar
 ## Notes: Наведи мышь на слово в тексте квеста: словарная форма, грамматика и перевод на английский.
-## Version: 0.3.0
+## Version: 0.4.0
 ## SavedVariables: SlovarDB
 
 Text.lua
@@ -10,6 +10,7 @@ Data\Forms.lua
 Lookup.lua
 Dict.lua
 Log.lua
+Saved.lua
 Tooltip.lua
 Hooks.lua
 Slovar.lua

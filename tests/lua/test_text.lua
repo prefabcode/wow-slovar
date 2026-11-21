@@ -69,6 +69,17 @@ local quest = "Привет, $N! Волки из Элвиннского леса
 local linked = roundtrip("quest", quest)
 eq("quest word count", count(linked), 29)
 
+-- Plural (chat messages: 1 слово, 2 слова, 5 слов)
+local function words(n) return n .. " " .. ns.Plural(n, "слово", "слова", "слов") end
+eq("plural 1", words(1), "1 слово")
+eq("plural 3", words(3), "3 слова")
+eq("plural 5", words(5), "5 слов")
+eq("plural 11", words(11), "11 слов")
+eq("plural 12", words(12), "12 слов")
+eq("plural 21", words(21), "21 слово")
+eq("plural 22", words(22), "22 слова")
+eq("plural 0", words(0), "0 слов")
+
 -- StripColors (the invisible overlay copy must not contain anything that renders visibly)
 eq("strip hex colour", ns.StripColors("|cffffd100Внимание|r: волки"), "Внимание: волки")
 eq("strip named colour", ns.StripColors("|cnNORMAL_FONT_COLOR:Текст|r"), "Текст")

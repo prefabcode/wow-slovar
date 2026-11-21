@@ -3,20 +3,11 @@ local addonName, ns = ...
 
 ns.enabled = true -- replaced by the saved setting (/slovar on|off) once SavedVariables are loaded
 
-local function Print(msg)
-    print("|cffd4af37Slovar|r: " .. msg)
-end
+local Print, Plural = ns.Print, ns.Plural
 
--- Russian plural agreement: 1 слово, 2 слова, 5 слов, 21 слово, 11 слов.
-local function Plural(n, one, few, many)
-    local n10, n100 = n % 10, n % 100
-    if n10 == 1 and n100 ~= 11 then
-        return one
-    elseif n10 >= 2 and n10 <= 4 and (n100 < 10 or n100 >= 20) then
-        return few
-    end
-    return many
-end
+-- Key binding (Bindings.xml): WoW shows these global strings in Options -> Keybindings.
+BINDING_HEADER_SLOVAR = "Slovar"
+BINDING_NAME_SLOVAR_SAVE_WORD = "Сохранить слово для Anki"
 
 -- Startup ------------------------------------------------------------------------------------------------------
 -- Addons react to game events through a frame. ADDON_LOADED fires once for each addon (including Blizzard's own
@@ -141,9 +132,27 @@ end
 -- Slash commands: WoW registers /slovar from the global SLASH_SLOVAR1 and calls SlashCmdList.SLOVAR(argString).
 SLASH_SLOVAR1 = "/slovar"
 SlashCmdList.SLOVAR = function(msg)
-    local cmd = (msg or ""):match("^%s*(%S*)"):lower()
+    local cmd, rest = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
+    cmd = cmd:lower()
     if cmd == "on" or cmd == "off" then
         SetEnabled(cmd == "on")
+    elseif cmd == "saved" then
+        local list = ns.SavedList()
+        Print(("для Anki сохранено %d %s (файл обновляется при выходе или /reload)"):format(#list,
+            Plural(#list, "слово", "слова", "слов")))
+        for i = 1, math.min(10, #list) do
+            local card = list[i]
+            local ex = card.examples[1]
+            print(("  ★ %s — %s%s"):format(card.lemma, card.glosses[1] or card.label or "",
+                ex and ns.Normalize(ex.form) ~= ns.Normalize(card.lemma) and ("  (" .. ex.form .. ")") or ""))
+        end
+    elseif cmd == "unsave" then
+        if rest == "" then
+            Print("/slovar unsave слово — убрать слово из списка для Anki")
+        else
+            local removed = ns.UnsaveWord(rest)
+            Print(removed and ("«" .. removed .. "» убрано из списка для Anki") or ("«" .. rest .. "» нет в списке"))
+        end
     elseif cmd == "missing" then
         local list = ns.MissingSummary()
         Print(("в журнале %d %s (сохраняется при выходе или /reload)"):format(#list,
@@ -166,7 +175,9 @@ SlashCmdList.SLOVAR = function(msg)
         ns.RefreshAll()
         Print("debug " .. (ns.debug and "on: the hover layer is drawn in red" or "off"))
     else
-        Print("/slovar on|off — включить/выключить, /slovar missing — журнал незнакомых слов, "
-            .. "/slovar clear — очистить журнал, /slovar test, /slovar status, /slovar debug")
+        Print("/slovar on|off — включить/выключить, /slovar saved — слова для Anki, /slovar unsave слово, "
+            .. "/slovar missing — журнал незнакомых слов, /slovar clear — очистить журнал, "
+            .. "/slovar test, /slovar status, /slovar debug")
+        Print("Клавиша «сохранить слово для Anki»: Настройки → Назначение клавиш → Slovar")
     end
 end

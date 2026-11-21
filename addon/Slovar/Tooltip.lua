@@ -39,8 +39,26 @@ local function Entry(e)
     end
 end
 
+-- Bottom line: ★ if the word is saved for Anki, else which key saves it (only once a key is bound).
+local function AnkiLine(word, entries, byParts)
+    local saved = ns.db and ns.db.saved[ns.SavedKeyFor(word, entries, byParts)]
+    local key = not saved and GetBindingKey and GetBindingKey("SLOVAR_SAVE_WORD")
+    if saved or key then
+        Line(" ", GREY, GameTooltipTextSmall)
+        if saved then
+            Line("★ в списке для Anki", GOLD, GameTooltipTextSmall)
+        else
+            Line(((GetBindingText and GetBindingText(key)) or key) .. " — сохранить для Anki", GREY,
+                GameTooltipTextSmall)
+        end
+    end
+end
+
+local current -- { owner, word, context } of the tooltip on screen, for RefreshTooltip
+
 -- owner: the frame the mouse is over; word: as written in the text; context: the whole text it came from.
 function ns.ShowTooltip(owner, word, context)
+    current = { owner = owner, word = word, context = context }
     tip:SetOwner(owner, "ANCHOR_CURSOR") -- also clears the previous contents
     local entries, byParts = ns.Lookup(word)
     if not entries then
@@ -57,8 +75,20 @@ function ns.ShowTooltip(owner, word, context)
             end
             Entry(e)
         end
+        AnkiLine(word, entries, byParts)
     end
     tip:Show()
+end
+
+function ns.TooltipShownFor(owner)
+    return owner ~= nil and tip:IsShown() and tip:IsOwned(owner)
+end
+
+-- Redraw the tooltip on screen (after saving a word). Found words only, so the missing-word log isn't touched.
+function ns.RefreshTooltip()
+    if current and ns.TooltipShownFor(current.owner) and ns.Lookup(current.word) then
+        ns.ShowTooltip(current.owner, current.word, current.context)
+    end
 end
 
 function ns.HideTooltip(owner)

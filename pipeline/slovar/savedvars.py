@@ -124,6 +124,43 @@ class Missing:
     quest: int | None = None
 
 
+def _as_list(t) -> list:
+    """Lua arrays come back as {1: a, 2: b}; empty ones as {}."""
+    return [v for _, v in sorted(t.items())] if isinstance(t, dict) else list(t or [])
+
+
+@dataclass
+class SavedWord:
+    """A word saved for Anki with the in-game hotkey (SlovarDB.saved, see addon/Slovar/Saved.lua)."""
+    key: str  # normalized dictionary form: one Anki note per key
+    lemma: str
+    label: str
+    glosses: list[str]
+    others: list[dict]  # other readings or parts: {lemma, label, grammar, glosses}
+    examples: list[dict]  # {form, grammar, sentence, quest}
+    added: int  # game time() of the first save
+    count: int
+
+
+def saved_words(wtf_dir: str = DEFAULT_WTF) -> list[SavedWord]:
+    """All saved words, merged over accounts, oldest first."""
+    merged: dict[str, SavedWord] = {}
+    for path in glob.glob(os.path.join(wtf_dir, "Account", "*", "SavedVariables", "Slovar.lua")):
+        db = read(path).get("SlovarDB") or {}
+        for key, c in (db.get("saved") or {}).items():
+            examples = _as_list(c.get("examples"))
+            others = [{**o, "glosses": _as_list(o.get("glosses"))} for o in _as_list(c.get("others"))]
+            w = merged.get(key)
+            if w is None:
+                merged[key] = SavedWord(key, c.get("lemma", key), c.get("label", ""), _as_list(c.get("glosses")),
+                                        others, examples, int(c.get("added", 0)), int(c.get("count", 0)))
+            else:
+                w.examples += [e for e in examples if e not in w.examples]
+                w.count += int(c.get("count", 0))
+                w.added = min(w.added, int(c.get("added", 0)))
+    return sorted(merged.values(), key=lambda w: (w.added, w.key))
+
+
 def missing_words(wtf_dir: str = DEFAULT_WTF) -> list[Missing]:
     """Words logged by /slovar's missing-word log, merged over all accounts, most hovered first."""
     merged: dict[str, Missing] = {}

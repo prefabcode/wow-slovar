@@ -1,4 +1,4 @@
--- Log.lua — settings and the missing-word log, kept in SavedVariables.
+-- Log.lua — settings, the missing-word log and shared helpers; data kept in SavedVariables.
 --
 -- SavedVariables: the .toc names a global (SlovarDB); WoW loads it from
 -- WTF/Account/<account>/SavedVariables/Slovar.lua before ADDON_LOADED fires for this addon and writes it back on
@@ -9,6 +9,10 @@ local MAX_WORDS = 2000
 local MAX_CONTEXTS = 3
 local MAX_SENTENCE = 300 -- bytes
 
+function ns.Print(msg)
+    print("|cffd4af37Slovar|r: " .. msg) -- print() goes to the chat window in WoW
+end
+
 function ns.InitDB()
     SlovarDB = type(SlovarDB) == "table" and SlovarDB or {}
     local db = SlovarDB
@@ -17,12 +21,13 @@ function ns.InitDB()
         db.enabled = true
     end
     db.missing = type(db.missing) == "table" and db.missing or {}
+    db.saved = type(db.saved) == "table" and db.saved or {} -- words saved for Anki (Saved.lua)
     ns.db = db
     ns.enabled = db.enabled
 end
 
 -- The sentence of `text` that contains `word` (plain text, colour codes removed).
-local function Sentence(text, word)
+function ns.Sentence(text, word)
     text = ns.StripColors(text):gsub("|n", "\n")
     local s, e = text:find(word, 1, true)
     if not s then
@@ -48,7 +53,7 @@ local function Sentence(text, word)
     return sentence
 end
 
-local function CurrentQuestID()
+function ns.CurrentQuestID()
     local ok, id = pcall(GetQuestID) -- quest in the NPC window
     if (not ok or not id or id == 0) and C_QuestLog and C_QuestLog.GetSelectedQuest then
         ok, id = pcall(C_QuestLog.GetSelectedQuest) -- quest selected in the quest log
@@ -77,8 +82,8 @@ function ns.LogMissing(word, context)
     end
     entry.count = entry.count + 1
     entry.last = time()
-    entry.quest = CurrentQuestID() or entry.quest
-    local sentence = type(context) == "string" and Sentence(context, word)
+    entry.quest = ns.CurrentQuestID() or entry.quest
+    local sentence = type(context) == "string" and ns.Sentence(context, word)
     if sentence and #entry.contexts < MAX_CONTEXTS then
         for _, s in ipairs(entry.contexts) do
             if s == sentence then

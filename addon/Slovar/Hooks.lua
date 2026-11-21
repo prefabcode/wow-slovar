@@ -33,7 +33,9 @@ local attached = {} -- FontString -> true
 local function OnHyperlinkEnter(self, link, text, ...)
     if type(link) == "string" and link:sub(1, #ns.LINK_PREFIX) == ns.LINK_PREFIX then
         -- self.target = the Blizzard FontString under our overlay: its plain text gives the sentence for the log
-        ns.ShowTooltip(self, link:sub(#ns.LINK_PREFIX + 1), self.target and self.target:GetText())
+        local word, context = link:sub(#ns.LINK_PREFIX + 1), self.target and self.target:GetText()
+        ns.hovered = { word = word, context = context, owner = self } -- for the "save for Anki" key (Saved.lua)
+        ns.ShowTooltip(self, word, context)
         return
     end
     -- Someone else's link inside the text (e.g. the quest-type icon in a quest title). Our overlay covers it, so
@@ -48,6 +50,9 @@ end
 
 local function OnHyperlinkLeave(self, ...)
     ns.HideTooltip(self)
+    if ns.hovered and ns.hovered.owner == self then
+        ns.hovered = nil
+    end
     if self.forwarded then
         self.forwarded = nil
         local parent = self:GetParent()

@@ -1,0 +1,7 @@
+<Bindings>
+	<!-- WoW loads Bindings.xml from the addon folder by itself (it is not listed in the .toc). The key is chosen by the
+	     player under Options -> Keybindings -> Slovar; names come from BINDING_HEADER_SLOVAR /
+	     BINDING_NAME_SLOVAR_SAVE_WORD in Slovar.lua. category = a global string gives Slovar its own section
+	     (same format as WayfarerRU's bindings in the Forever client). -->
+	<Binding name="SLOVAR_SAVE_WORD" category="BINDING_HEADER_SLOVAR">Slovar_SaveHoveredWord()</Binding>
+</Bindings>

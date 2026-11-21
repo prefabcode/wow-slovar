@@ -124,6 +124,17 @@ function ns.StripColors(text)
     return (gsub(text, "|r", ""))
 end
 
+-- Russian plural agreement: Plural(n, "слово", "слова", "слов") -> 1 слово, 2 слова, 5 слов, 21 слово, 11 слов.
+function ns.Plural(n, one, few, many)
+    local n10, n100 = n % 10, n % 100
+    if n10 == 1 and n100 ~= 11 then
+        return one
+    elseif n10 >= 2 and n10 <= 4 and (n100 < 10 or n100 >= 20) then
+        return few
+    end
+    return many
+end
+
 -- Inverse of Linkify: the plain text back (for logging context sentences later, and for tests).
 function ns.StripLinks(text)
     return (gsub(text, "|H" .. LINK_PREFIX .. "[^|]*|h(.-)|h", "%1"))
