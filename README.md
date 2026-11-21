@@ -21,7 +21,7 @@ scripts/install.sh          # symlinks addon/Slovar into _forever_/Interface/Add
 scripts/install.sh --copy   # copies instead, if the client doesn't pick up the symlink
 ```
 
-The default target is `/Volumes/PerkDrive/games/World of Warcraft/_forever_/Interface/AddOns`. Override it with
+Change target for symlink by adding addon path to: 
 `WOW_ADDONS=...`.
 
 ## In game
