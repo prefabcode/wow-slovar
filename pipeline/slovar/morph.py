@@ -38,14 +38,19 @@ def link(token: str, lex: Lexicon) -> dict[tuple, set[str]]:
     return out
 
 
+LABELS = {"NOUN": "noun", "ADJF": "adjective", "VERB": "verb", "INFN": "verb", "ADVB": "adverb", "NUMR": "numeral",
+          "NPRO": "pronoun", "PREP": "preposition", "CONJ": "conjunction", "PRCL": "particle", "INTJ": "interjection",
+          "PRED": "predicative"}
+
+
 def lexeme_lemma(parse, display: str, label_pos: str) -> Lemma:
     lem = Lemma(display, "guess", source="guess")
     grams = set(parse.tag.grammemes)
-    lem.gender = next((g[0] for g in ("masc", "femn", "neut") if g in grams), "")
-    lem.participle_kind = label_pos  # reused as the label for guessed words: "proper noun", "noun", "adjective"
-    for f in parse.lexeme:
-        if f.tag.POS == parse.tag.POS:
-            lem.forms.setdefault(norm(f.word), set()).add(T.from_pymorphy(f.tag))
+    if parse.tag.POS == "NOUN":
+        lem.gender = next((g[0] for g in ("masc", "femn", "neut") if g in grams), "")
+    lem.participle_kind = label_pos  # reused as the label for guessed words: "proper noun", "noun", "verb"...
+    for f in parse.lexeme:  # all forms: a verb's lexeme also holds its participles and gerunds
+        lem.forms.setdefault(norm(f.word), set()).add(T.from_pymorphy(f.tag))
     return lem
 
 
@@ -74,13 +79,16 @@ def guess(token: str, corpus_forms: set[str], capitalized: bool) -> Lemma | None
 
 
 def from_lemma(word: str, english: str) -> Lemma | None:
-    """Glossary entry -> headword with full declension (Штормград -> штормграда, штормграде, ...)."""
-    capitalized = word[:1].isupper()
-    parses = [p for p in analyzer().parse(word) if p.tag.POS in ("NOUN", "ADJF") and norm(p.normal_form) == norm(word)]
-    if not parses:
+    """extra_words.tsv entry -> headword with all its forms (Штормград -> штормграда, штормграде...;
+    поохотиться -> поохочусь, поохотился...)."""
+    parses = analyzer().parse(word)
+    p = next((p for p in parses if norm(p.normal_form) == norm(word)), parses[0] if parses else None)
+    if p is None:
         return None
-    p = parses[0]
-    lem = lexeme_lemma(p, word, "adjective" if p.tag.POS == "ADJF" else ("proper noun" if capitalized else "noun"))
-    lem.glosses = [english]
+    label = "proper noun" if p.tag.POS == "NOUN" and word[:1].isupper() else LABELS.get(p.tag.POS, "word")
+    if p.tag.POS in ("VERB", "INFN") and p.tag.aspect:
+        label += ", perfective" if p.tag.aspect == "perf" else ", imperfective"
+    lem = lexeme_lemma(p, word, label)
+    lem.glosses = [g.strip() for g in english.split(";") if g.strip()]
     lem.source = "glossary"
     return lem

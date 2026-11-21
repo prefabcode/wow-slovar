@@ -3,13 +3,13 @@
 -- With no arguments, runs the built-in checks.
 local root = (arg and arg[0] or ""):match("^(.*)tests/lua/") or "./"
 local ns = {}
-for _, file in ipairs({ "Text.lua", "Data/Lemmas.lua", "Data/Forms.lua", "Lookup.lua" }) do
+for _, file in ipairs({ "Text.lua", "Data/Lemmas.lua", "Data/Forms.lua", "Lookup.lua", "Dict.lua" }) do
     assert(loadfile(root .. "addon/Slovar/" .. file))("Slovar", ns)
 end
 
 local function Show(word)
-    local entries = ns.LookupKey(ns.Normalize(word))
-    print(word)
+    local entries, byParts = ns.Lookup(word)
+    print(word .. (byParts and "  (по частям)" or ""))
     if not entries then
         print("   (нет в словаре)")
         return
@@ -32,7 +32,7 @@ end
 
 local failed = 0
 local function expect(word, lemma, grammarPart)
-    local entries = ns.LookupKey(ns.Normalize(word)) or {}
+    local entries = ns.Lookup(word) or {}
     for _, e in ipairs(entries) do
         if e.l == lemma and (not grammarPart or e.g:find(grammarPart, 1, true)) then
             return
@@ -51,5 +51,6 @@ expect("ещё", "ещё")
 expect("лесу", "лес")
 expect("убей", "убить", "imperative")
 expect("найдётся", "найтись")
+expect("кобольдов-вредителей", "вредитель", "genitive / accusative plural") -- by parts
 print(failed == 0 and "lookup checks passed" or (failed .. " lookup checks failed"))
 os.exit(failed == 0 and 0 or 1)

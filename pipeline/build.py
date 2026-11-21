@@ -5,7 +5,8 @@
 Which words go in:
   1. every lemma that any word of the quest corpus can belong to (all candidates for ambiguous forms);
   2. the N most frequent Russian lemmas (fallback for quests not in the corpus; --freq-top, default 10000);
-  3. WoW names (pipeline/wow_glossary.tsv + guessed from the corpus).
+  3. WoW names (guessed from the corpus) and pipeline/extra_words.tsv;
+  4. words from your in-game missing-word log (SavedVariables), so a rebuild fixes them when it can.
 Each chosen lemma contributes ALL its forms, so волков works even if the corpus only had волк.
 """
 import argparse
@@ -15,7 +16,7 @@ import re
 import sys
 import time
 
-from slovar import align, corpus, freq, kaikki, luaout, morph
+from slovar import align, corpus, freq, kaikki, luaout, morph, savedvars
 from slovar.textnorm import WORD_RE, norm
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -180,18 +181,30 @@ def align_guesses(sel: Selection, final, aligner):
     return results
 
 
+def _short(glosses, budget=70):
+    """At most 3 glosses and about `budget` characters in total ("pest; vermin; saboteur; ... malware" is too
+    much for a tooltip). The first gloss is always kept."""
+    out, used = [], 0
+    for g in glosses[:3]:
+        if out and used + len(g) > budget:
+            break
+        out.append(g)
+        used += len(g) + 2
+    return out
+
+
 def glosses_for(lex, lem):
     if lem.pos == "participle":
         verb = lex.lemmas.get((lem.participle_of, "verb"))
         if verb:
-            return verb.glosses[:3] or verb.minor_glosses[:3]
+            return _short(verb.glosses or verb.minor_glosses)
     own = lem.glosses[:3] or lem.minor_glosses[:3]
     # "passive of хранить" says nothing by itself: add хранить's meanings.
     if getattr(lem, "derived_from", "") and len(own) < 3 and any(re.search(r"\bof \S+$", g) for g in own):
         base = next((lex.lemmas[k] for k in lex.find(lem.derived_from, {lem.pos})), None)
         if base:
             own = own + [g for g in base.glosses if g not in own][:3 - len(own)]
-    return own
+    return _short(own)
 
 
 def coverage(c: Corpus, final_forms):
@@ -210,6 +223,7 @@ def main():
     ap.add_argument("--freq-top", type=int, default=10000)
     ap.add_argument("--addons", default=DEFAULT_ADDONS, help="WoW Interface/AddOns folder (for Wayfarer text)")
     ap.add_argument("--out", default=os.path.join(ROOT, "addon", "Slovar", "Data"))
+    ap.add_argument("--wtf", default=savedvars.DEFAULT_WTF, help="WoW WTF folder (for the missing-word log)")
     ap.add_argument("--vocab", action="store_true",
                     help="also take vocabulary from AzerothCore item/NPC names, gossip and books (+1.5 MB)")
     ap.add_argument("--show-guesses", type=int, default=150, help="how many guessed WoW words to list")
@@ -227,6 +241,10 @@ def main():
         Corpus("Wayfarer: classic quests", [q for q in wf.values() if not q.forever_new]),
         Corpus("Wayfarer: new WoW Forever quests", [q for q in wf.values() if q.forever_new]),
     ]
+    logged = savedvars.missing_words(args.wtf) if os.path.isdir(args.wtf) else []
+    if logged:
+        texts = [m.word for m in logged] + [c for m in logged for c in m.contexts]
+        groups.append(Corpus("Your missing-word log", [corpus.Quest(0, "log", None, texts)]))
     for g in groups:
         step(f"  {g.name}: {len(g.quests)} quests, {sum(g.counts.values())} words, {len(g.counts)} distinct")
     vocab = Corpus("AzerothCore names, gossip, books", corpus.wow_vocabulary(os.path.join(DATA, "azerothcore"))) \
@@ -238,7 +256,7 @@ def main():
     index = lex.index()
     step(f"  {len(lex.lemmas)} lemmas, {len(index)} distinct forms")
     fq = freq.Freq(os.path.join(DATA, "freq", "freqrnc2011.csv"))
-    glossary = load_glossary(os.path.join(ROOT, "pipeline", "wow_glossary.tsv"))
+    glossary = load_glossary(os.path.join(ROOT, "pipeline", "extra_words.tsv"))
     for line in open(os.path.join(ROOT, "pipeline", "gloss_overrides.tsv"), encoding="utf-8"):
         if line.strip() and not line.startswith("#"):
             word, pos, glosses = line.rstrip("\n").split("\t")
@@ -269,7 +287,8 @@ def main():
     n_guess = sum(1 for k in used if k[0] == "guess")
     print(f"  total {sum(sizes.values()) / 1e6:.2f} MB; {len(order)} lemmas ({n_guess} WoW names/guesses), "
           f"{len(forms)} forms; ambiguous forms: {sum(1 for c in final.values() if len(c) > 1)}")
-    print(f"  glossary entries already in Wiktionary (ignored): {', '.join(sel.glossary_ignored) or '-'}")
+    print(f"  extra_words.tsv entries already in Wiktionary (ignored; use gloss_overrides.tsv): "
+          f"{', '.join(sel.glossary_ignored) or '-'}")
 
     print("\n=== Coverage (share of word tokens that get a tooltip)")
     for g in groups:

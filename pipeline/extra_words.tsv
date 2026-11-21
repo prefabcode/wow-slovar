@@ -1,0 +1,9 @@
+# Words Wiktionary lacks: WoW names and creatures, or ordinary words missing from it (pipeline/missing.py lists the
+# ones you hovered in game). build.py generates all their forms with pymorphy3.
+# Also overrides a wrong English name from the automatic alignment with English quest text.
+# Russian dictionary form<TAB>English (several glosses separated by ";")
+дворф	dwarf
+Лок	Loch Modan
+Модан	Loch Modan
+Красногорье	Redridge Mountains
+Хилсбрад	Hillsbrad

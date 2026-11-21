@@ -24,6 +24,25 @@ scripts/install.sh --copy   # copies instead, if the client doesn't pick up the 
 The default target is `/Volumes/PerkDrive/games/World of Warcraft/_forever_/Interface/AddOns`. Override it with
 `WOW_ADDONS=...`.
 
+## In game
+
+- `/slovar on` / `/slovar off` turns hovering on or off. The setting is remembered.
+- `/slovar missing` lists the words you hovered that weren't in the dictionary; `/slovar clear` empties that log.
+- `/slovar status` shows hook diagnostics, `/slovar test` opens a test window, and `/slovar debug` shows the hover layer.
+
+## Fixing missing words
+
+Words you hover that the dictionary doesn't have are logged, together with their sentence, to
+`WTF/Account/<account>/SavedVariables/Slovar.lua`. WoW writes that file when you log out or `/reload`.
+
+```sh
+pipeline/.venv/bin/python pipeline/missing.py   # what's missing, and how to fix each word
+pipeline/.venv/bin/python pipeline/build.py     # reads the same log: words Wiktionary has get added
+```
+
+Words that aren't in Wiktionary at all, like WoW names or the odd verb such as поохотиться, need a line in
+`pipeline/extra_words.tsv` (`dictionary form<TAB>English`). After rebuilding, `/reload` in game.
+
 ## Dev loop
 
 - Edited a `.lua` file: `/reload` in game.
@@ -45,7 +64,7 @@ luajit tests/lua/lookup.lua волков стали Штормграде        
 installed Wayfarer voice packs, including WoW Forever's new quests. It then picks every dictionary word those
 quests use, plus the 10,000 most frequent Russian words (`--freq-top`), and writes every inflected form of each.
 WoW names that Wiktionary lacks get their forms from pymorphy3. Their English names come from matching Russian and
-English quest text (`pipeline/slovar/align.py`); you can correct them in `pipeline/wow_glossary.tsv`, and fix
+English quest text (`pipeline/slovar/align.py`); you can correct them in `pipeline/extra_words.tsv`, and fix
 misleading glosses in `pipeline/gloss_overrides.tsv`.
 
 Sources:

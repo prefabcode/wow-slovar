@@ -1,28 +1,30 @@
--- Dict.lua — Phase 1 mini dictionary. Phase 2 generates the real data from Wiktionary in the same shape.
---
--- Keys are normalized forms (lowercase, ё -> е). Each form maps to a LIST of candidates, because one form can
--- belong to several lemmas (стали: сталь or стать). Fields: l = lemma, p = part of speech, g = which form this
--- is, e = English glosses.
+-- Dict.lua — word as it appears in the text -> dictionary entries (data: Data/*.lua, decoding: Lookup.lua).
 local _, ns = ...
 
-ns.Dict = {
-    ["волков"] = { { l = "волк", p = "noun, masc., animate", g = "genitive plural; accusative plural", e = { "wolf" } } },
-    ["кобольдов"] = { { l = "кобольд", p = "noun, masc., animate", g = "genitive plural; accusative plural", e = { "kobold" } } },
-    ["лесу"] = { { l = "лес", p = "noun, masc.", g = "locative singular (в лесу); dative singular", e = { "forest", "woods" } } },
-    ["убить"] = { { l = "убить", p = "verb, perfective", g = "infinitive", e = { "to kill" } } },
-    ["принеси"] = { { l = "принести", p = "verb, perfective", g = "imperative singular", e = { "to bring", "to fetch" } } },
-    ["помочь"] = { { l = "помочь", p = "verb, perfective", g = "infinitive", e = { "to help" } } },
-    ["мне"] = { { l = "я", p = "pronoun, personal", g = "dative; prepositional", e = { "I", "me" } } },
-    ["земли"] = { { l = "земля", p = "noun, fem.", g = "genitive singular; nominative plural; accusative plural", e = { "land", "earth", "soil" } } },
-    ["штормграда"] = { { l = "Штормград", p = "proper noun, masc.", g = "genitive singular", e = { "Stormwind" } } },
-    ["еще"] = { { l = "ещё", p = "adverb", g = "invariable", e = { "still", "yet", "more" } } },
-    ["кто-нибудь"] = { { l = "кто-нибудь", p = "pronoun, indefinite", g = "nominative", e = { "someone", "anyone" } } },
-    ["стали"] = {
-        { l = "сталь", p = "noun, fem.", g = "genitive / dative / prepositional singular; nominative / accusative plural", e = { "steel" } },
-        { l = "стать", p = "verb, perfective", g = "past tense, plural", e = { "to become", "to begin (to do)", "to stand" } },
-    },
-}
-
+-- Returns entries ({ l = lemma, p = label, g = grammar, e = { glosses } } list) and whether they come from the
+-- word's parts. Hyphenated words that aren't in the dictionary as a whole (кобольдов-вредителей) are looked up
+-- part by part, showing the best match for each part.
 function ns.Lookup(word)
-    return ns.Dict[ns.Normalize(word)]
+    local key = ns.Normalize(word)
+    local entries = ns.LookupKey(key)
+    if entries or not key:find("-", 1, true) then
+        return entries, false
+    end
+    local parts, shown = {}, {}
+    for part in word:gmatch("[^-]+") do
+        shown[#shown + 1] = part
+    end
+    local i = 0
+    for part in key:gmatch("[^-]+") do
+        i = i + 1
+        local found = ns.LookupKey(part)
+        if found then
+            found[1].part = shown[i]
+            parts[#parts + 1] = found[1]
+        end
+    end
+    if #parts > 0 then
+        return parts, true
+    end
+    return nil, false
 end

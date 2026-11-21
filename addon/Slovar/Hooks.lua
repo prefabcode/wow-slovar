@@ -32,7 +32,8 @@ local attached = {} -- FontString -> true
 -- Hover handlers on OUR overlay frame ----------------------------------------------------------------------------
 local function OnHyperlinkEnter(self, link, text, ...)
     if type(link) == "string" and link:sub(1, #ns.LINK_PREFIX) == ns.LINK_PREFIX then
-        ns.ShowTooltip(self, link:sub(#ns.LINK_PREFIX + 1))
+        -- self.target = the Blizzard FontString under our overlay: its plain text gives the sentence for the log
+        ns.ShowTooltip(self, link:sub(#ns.LINK_PREFIX + 1), self.target and self.target:GetText())
         return
     end
     -- Someone else's link inside the text (e.g. the quest-type icon in a quest title). Our overlay covers it, so
